@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<!-- ═══════════════════════════════════════════════════
+     iPhone Save / PWA Support
+     ════════════════════════════════════════════════ -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LSAT Prep">
+<meta name="theme-color" content="#07111f">
+<meta name="mobile-web-app-capable" content="yes">
+<title>LSAT Daily Prep</title>
+<style>
+/* ═══════════════════════════════════════════════════
+   Dark Mode Theme
+   ════════════════════════════════════════════════ */
+:root {
+  --bg:         #07111f;
+  --card:       #111827;
+  --card2:      #1f2937;
+  --card3:      #263147;
+  --border:     #2d3a50;
+  --blue:       #38bdf8;
+  --blue-dim:   rgba(56,189,248,0.12);
+  --purple:     #8b5cf6;
+  --purple-dim: rgba(139,92,246,0.12);
+  --green:      #22c55e;
+  --green-dim:  rgba(34,197,94,0.12);
+  --amber:      #f59e0b;
+  --amber-dim:  rgba(245,158,11,0.12);
+  --red:        #ef4444;
+  --red-dim:    rgba(239,68,68,0.12);
+  --text:       #f8fafc;
+  --muted:      #94a3b8;
+  --faint:      #3d4f6a;
+  --radius:     12px;
+  --radius-sm:  8px;
+  --tab-h:      60px;
+}
+
+/* ═══════════════════════════════════════════════════
+   Mobile Responsive CSS — base reset
+   ════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Safe area padding for iPhone notch */
+.app {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 0 calc(var(--tab-h) + env(safe-area-inset-bottom) + 8px) 0;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ══════════════════════════════════════════════════
+   iPhone Save / PWA Support — install hint modal
+   ════════════════════════════════════════════════ */
+#installHint {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(7,17,31,0.92);
+  z-index: 999;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 16px calc(env(safe-area-inset-bottom) + 16px);
+}
+#installHint.open { display: flex; }
+.install-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 20px;
+  width: 100%;
+  max-width: 500px;
+}
+.install-card h3 { font-size: 17px; font-weight: 700; color: var(--blue); margin-bottom: 10px; }
+.install-steps { font-size: 14px; color: var(--muted); line-height: 2; }
+.install-steps strong { color: var(--text); }
+
+/* ── Toast ── */
+#toast-container {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 16px);
+  left: 50%; transform: translateX(-50%);
+  z-index: 800;
+  display: flex; flex-direction: column; gap: 8px;
+  pointer-events: none;
+  width: calc(100% - 32px); max-width: 400px;
+}
+.toast {
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 11px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  animation: toastIn .25s ease;
+  text-align: center;
+}
+.toast.xp    { border-left: 3px solid var(--purple); }
+.toast.reward{ border-left: 3px solid var(--green); }
+.toast.lvlup { border-left: 3px solid var(--amber); background: #1a1200; }
+@keyframes toastIn { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:none; } }
+
+/* ── Header ── */
+.header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: calc(env(safe-area-inset-top) + 12px) 16px 12px;
+  display: flex; align-items: center; gap: 10px;
+  position: sticky; top: 0; z-index: 100;
+}
+.header-logo { flex: 1; }
+.header-logo h1 { font-size: 18px; font-weight: 800; color: var(--blue); letter-spacing: -0.3px; }
+.header-logo p  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.header-right { display: flex; gap: 8px; align-items: center; }
+.header-pct { text-align: right; }
+.header-pct-val { font-size: 20px; font-weight: 800; color: var(--blue); line-height: 1; }
+.header-pct-lbl { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.icon-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--card2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 16px; color: var(--muted);
+  transition: all .15s;
+}
+.icon-btn:active { background: var(--card3); }
+
+/* ── Bottom tab bar ── */
+.tab-bar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: calc(var(--tab-h) + env(safe-area-inset-bottom));
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 200;
+}
+.tab-item {
+  flex: 1;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; cursor: pointer; transition: all .15s;
+  padding: 8px 4px;
+  border: none; background: transparent; color: var(--faint);
+  font-family: inherit;
+}
+.tab-item.active { color: var(--blue); }
+.tab-item:active { opacity: .7; }
+.tab-icon { font-size: 20px; line-height: 1; }
+.tab-label { font-size: 10px; font-weight: 600; letter-spacing: 0.03em; }
+.tab-item.active .tab-icon { filter: drop-shadow(0 0 6px rgba(56,189,248,.5)); }
+
+/* ── Tab panes ── */
+.tab-pane { display: none; padding: 14px 14px 0; animation: fadeUp .2s ease; }
+.tab-pane.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ── Cards ── */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+.card-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px;
+  background: var(--card2);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; user-select: none;
+}
+.card-header-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--muted); flex: 1;
+}
+.card-tag {
+  font-size: 10px; font-weight: 600;
+  padding: 2px 8px; border-radius: 20px;
+  background: var(--blue-dim); color: var(--blue);
+}
+.card-tag.purple { background: var(--purple-dim); color: var(--purple); }
+.card-tag.green  { background: var(--green-dim);  color: var(--green);  }
+.card-tag.amber  { background: var(--amber-dim);  color: var(--amber);  }
+.card-body { padding: 12px 14px; }
+.card-body.card-body-collapsed { display: none; }
+
+/* ── XP Widget ── */
+.xp-widget {
+  background: linear-gradient(135deg, var(--card) 0%, var(--card3) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.xp-top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.xp-level-pill {
+  background: var(--purple);
+  color: #fff; font-size: 11px; font-weight: 800;
+  padding: 3px 10px; border-radius: 20px; white-space: nowrap;
+}
+.xp-level-name { font-size: 15px; font-weight: 700; color: var(--purple); flex: 1; }
+.xp-motivator { font-size: 11px; color: var(--muted); font-style: italic; }
+.xp-bar-wrap { height: 8px; background: var(--card2); border-radius: 4px; overflow: hidden; margin-bottom: 5px; }
+.xp-bar-fill { height: 100%; background: linear-gradient(90deg, var(--purple), var(--blue)); border-radius: 4px; transition: width .5s ease; }
+.xp-bar-meta { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); }
+.xp-stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+.xp-stat-box { background: var(--card2); border-radius: var(--radius-sm); padding: 8px 10px; text-align: center; }
+.xp-stat-val { font-size: 20px; font-weight: 800; color: var(--blue); line-height: 1; }
+.xp-stat-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-top: 2px; }
+
+/* ── Streak Widget ── */
+.streak-widget {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 13px 14px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 14px;
+}
+.streak-flame { font-size: 32px; line-height: 1; }
+.streak-info { flex: 1; }
+.streak-val { font-size: 26px; font-weight: 800; color: var(--amber); line-height: 1; }
+.streak-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.streak-best { font-size: 11px; color: var(--faint); margin-top: 3px; }
+
+/* ── Weekly reward bar ── */
+.reward-bar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 13px 14px;
+  margin-bottom: 10px;
+}
+.reward-bar-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.reward-bar-lbl { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); flex: 1; }
+.reward-pct { font-size: 18px; font-weight: 800; color: var(--green); }
+.reward-track { height: 7px; background: var(--card2); border-radius: 4px; overflow: hidden; }
+.reward-fill  { height: 100%; background: linear-gradient(90deg, var(--green), var(--blue)); border-radius: 4px; transition: width .4s; }
+.reward-status { font-size: 12px; color: var(--muted); margin-top: 6px; font-style: italic; }
+.reward-status.unlocked { color: var(--green); font-style: normal; font-weight: 600; }
+
+/* ── Week nav ── */
+.week-nav {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 10px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 10px;
+}
+.week-arrow {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--card2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--muted); font-size: 16px;
+  flex-shrink: 0; transition: all .15s;
+}
+.week-arrow:active { background: var(--card3); color: var(--blue); }
+.week-label { flex: 1; text-align: center; }
+.week-label-main { font-size: 13px; font-weight: 700; color: var(--text); }
+.week-label-phase { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+/* ── Day nav pills ── */
+.day-nav {
+  display: flex; gap: 5px; flex-wrap: nowrap; overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; padding-bottom: 2px;
+  margin-bottom: 10px;
+}
+.day-nav::-webkit-scrollbar { display: none; }
+.day-pill {
+  flex-shrink: 0;
+  padding: 6px 11px;
+  border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .15s;
+  background: var(--card2); border: 1px solid var(--border);
+  color: var(--muted); white-space: nowrap;
+  position: relative;
+}
+.day-pill.active { background: var(--blue); color: #000; border-color: var(--blue); }
+.day-pill.today::after {
+  content: ''; position: absolute; top: 3px; right: 4px;
+  width: 5px; height: 5px; border-radius: 50%; background: var(--green);
+}
+.day-pill.active.today::after { background: #000; }
+
+/* ── Progress bar (week) ── */
+.week-progress-wrap { height: 3px; background: var(--card2); border-radius: 2px; margin-bottom: 12px; }
+.week-progress-bar  { height: 100%; background: var(--blue); border-radius: 2px; transition: width .4s; }
+
+/* ── Day header ── */
+.day-header {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 12px; flex-wrap: wrap;
+}
+.day-date { font-size: 18px; font-weight: 800; color: var(--text); }
+.today-label { font-size: 11px; font-weight: 700; color: var(--green); }
+.day-type-badge {
+  font-size: 11px; font-weight: 700; padding: 3px 11px;
+  border-radius: 20px; white-space: nowrap;
+}
+.day-type-badge.untimed { background: var(--blue-dim);   color: var(--blue);   }
+.day-type-badge.timed   { background: var(--amber-dim);  color: var(--amber);  }
+.day-type-badge.fullpt  { background: var(--purple-dim); color: var(--purple); }
+.day-type-badge.light   { background: var(--green-dim);  color: var(--green);  }
+.day-type-badge.reset   { background: var(--purple-dim); color: var(--purple); }
+
+/* ── Task rows ── */
+.task-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.task-row:last-child { border-bottom: none; }
+.task-checkbox {
+  width: 22px; height: 22px; flex-shrink: 0; margin-top: 1px;
+  accent-color: var(--blue); cursor: pointer;
+  border-radius: 50%;
+}
+.task-content { flex: 1; }
+.task-text { font-size: 14px; line-height: 1.5; color: var(--text); cursor: pointer; }
+.task-text.done { text-decoration: line-through; color: var(--faint); }
+.task-footer { display: flex; gap: 6px; align-items: center; margin-top: 4px; flex-wrap: wrap; }
+.task-time { font-size: 11px; color: var(--muted); }
+.task-res  { font-size: 10px; padding: 1px 7px; border-radius: 10px; background: var(--blue-dim); color: var(--blue); }
+.task-xp   { font-size: 10px; padding: 1px 7px; border-radius: 10px; background: var(--purple-dim); color: var(--purple); }
+
+/* ── Inputs / textarea ── */
+input[type=text], input[type=date], input[type=number], textarea, select {
+  width: 100%;
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  font-family: inherit; font-size: 15px;
+  padding: 10px 12px; outline: none;
+  transition: border-color .15s;
+  -webkit-appearance: none; appearance: none;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--blue); }
+textarea { resize: vertical; min-height: 72px; }
+select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+
+input[type=checkbox].toggle {
+  width: 44px; height: 24px; appearance: none;
+  background: var(--faint); border-radius: 12px;
+  position: relative; cursor: pointer;
+  transition: background .2s; border: none; padding: 0; flex-shrink: 0;
+}
+input[type=checkbox].toggle:checked { background: var(--blue); }
+input[type=checkbox].toggle::after {
+  content: ''; position: absolute;
+  width: 18px; height: 18px; background: white;
+  border-radius: 50%; top: 3px; left: 3px; transition: left .2s;
+}
+input[type=checkbox].toggle:checked::after { left: 23px; }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 11px 18px; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 14px; font-weight: 700;
+  cursor: pointer; border: none; transition: all .15s;
+  min-height: 44px; /* Apple HIG minimum tap target */
+  white-space: nowrap;
+}
+.btn:active { transform: scale(.97); opacity: .9; }
+.btn-primary  { background: var(--blue);   color: #000; }
+.btn-purple   { background: var(--purple); color: #fff; }
+.btn-green    { background: var(--green-dim); border: 1px solid var(--green); color: var(--green); }
+.btn-ghost    { background: var(--card2); border: 1px solid var(--border); color: var(--muted); }
+.btn-ghost:active { color: var(--blue); border-color: var(--blue); }
+.btn-danger   { background: var(--red-dim); border: 1px solid var(--border); color: var(--red); }
+.btn-xp       { background: var(--purple-dim); border: 1px solid var(--purple); color: var(--purple); }
+.btn-sm { padding: 8px 13px; font-size: 12px; min-height: 36px; }
+.btn-block { width: 100%; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.btn-row .btn { flex: 1; min-width: 100px; }
+
+/* ── Reflection / Reset sections ── */
+.ref-label {
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--muted); margin-bottom: 6px;
+}
+.reflection-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+@media (max-width: 480px) { .reflection-grid { grid-template-columns: 1fr; } }
+.score-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.score-box { background: var(--card2); border-radius: var(--radius-sm); padding: 10px 12px; }
+.score-box label { font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: 4px; }
+.score-box input { border: none; background: transparent; font-size: 20px; font-weight: 800; color: var(--blue); padding: 0; width: 100%; }
+.score-box input:focus { outline: none; }
+
+.reset-section {
+  background: rgba(139,92,246,.07);
+  border: 1px solid rgba(139,92,246,.2);
+  border-radius: var(--radius); padding: 14px;
+  margin-bottom: 10px;
+}
+.reset-section h3 { font-size: 14px; font-weight: 800; color: var(--purple); margin-bottom: 12px; }
+.review-note {
+  font-size: 12px; color: var(--muted); font-style: italic;
+  margin-bottom: 10px; padding: 8px 10px;
+  background: var(--card2); border-radius: var(--radius-sm);
+  border-left: 3px solid var(--blue);
+}
+
+/* ── Wrong answer log ── */
+.wrong-log-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.wrong-entry {
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 12px;
+}
+.wrong-entry-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px; }
+.wrong-entry-row:last-child { margin-bottom: 0; }
+.wrong-entry input { font-size: 13px; padding: 7px 9px; }
+
+/* ── Reward cards ── */
+.reward-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+  margin-bottom: 8px; display: flex; gap: 12px; align-items: flex-start;
+}
+.reward-card.unlocked { border-color: var(--green); background: rgba(34,197,94,.04); }
+.reward-card.claimed  { opacity: .5; }
+.reward-card-icon { font-size: 24px; flex-shrink: 0; padding-top: 2px; }
+.reward-card-body { flex: 1; }
+.reward-name { font-size: 15px; font-weight: 700; color: var(--text); }
+.reward-desc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.reward-meta { display: flex; gap: 6px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+.reward-cost { font-size: 11px; color: var(--faint); }
+.status-pill {
+  font-size: 10px; font-weight: 700; padding: 2px 8px;
+  border-radius: 20px; text-transform: uppercase;
+}
+.status-locked   { background: var(--card2); color: var(--faint); }
+.status-unlocked { background: var(--green-dim); color: var(--green); }
+.status-claimed  { background: var(--card2); color: var(--muted); }
+.reward-actions  { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex-shrink: 0; }
+
+/* ── Settings rows ── */
+.settings-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0; border-bottom: 1px solid var(--border); gap: 14px;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-lbl { font-size: 14px; font-weight: 600; color: var(--text); }
+.settings-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+/* ── Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(7,17,31,.88); z-index: 600;
+  align-items: flex-end; justify-content: center;
+  padding: 0 12px calc(env(safe-area-inset-bottom) + 12px);
+}
+.modal-overlay.open { display: flex; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+.modal {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius) var(--radius) var(--radius-sm) var(--radius-sm);
+  padding: 22px 18px; width: 100%; max-width: 500px;
+  max-height: 90vh; overflow-y: auto;
+  animation: slideUp .25s ease;
+}
+@keyframes slideUp { from { transform: translateY(30px); opacity:0; } to { transform: none; opacity:1; } }
+.modal h2 { font-size: 20px; font-weight: 800; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 18px; }
+.modal-actions .btn { flex: 1; }
+
+/* ── Level up modal ── */
+.lvlup-modal { text-align: center; }
+.lvlup-icon { font-size: 52px; margin-bottom: 8px; }
+.lvlup-title { font-size: 24px; font-weight: 900; color: var(--purple); margin-bottom: 6px; }
+.lvlup-mot { font-size: 13px; color: var(--muted); font-style: italic; margin-bottom: 20px; }
+
+/* ── Reward choose ── */
+.reward-choose-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); margin-bottom: 8px;
+  cursor: pointer; transition: all .15s;
+}
+.reward-choose-item:active { background: var(--card2); border-color: var(--green); }
+.reward-choose-item.selected { border-color: var(--green); background: rgba(34,197,94,.06); }
+
+/* ── Quick add buttons ── */
+.quick-add-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.quick-add-row .btn-sm { flex: 1; min-width: 80px; font-size: 12px; }
+
+/* ── Level grid ── */
+.level-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.level-item {
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 9px 11px; font-size: 12px; color: var(--muted);
+}
+.level-item span { font-weight: 800; color: var(--purple); }
+
+/* ── Empty state ── */
+.empty-state { text-align: center; padding: 36px 16px; color: var(--faint); }
+.empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+/* ── Form group ── */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 6px; }
+
+/* ── Section heading inside tab ── */
+.section-heading { font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+.section-sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+
+/* ── XP rates card ── */
+.xp-rate-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.xp-rate-row:last-child { border-bottom: none; }
+.xp-rate-val { font-weight: 800; color: var(--purple); min-width: 56px; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════
+     Modals
+     ════════════════════════════════════ -->
+<div id="toast-container"></div>
+
+<!-- Level Up -->
+<div class="modal-overlay" id="levelupModal">
+  <div class="modal lvlup-modal">
+    <div class="lvlup-icon">⬆</div>
+    <div class="lvlup-title" id="lu-title">Level Up</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:6px" id="lu-sub"></div>
+    <div class="lvlup-mot" id="lu-mot"></div>
+    <button class="btn btn-purple btn-block" onclick="closeModal('levelupModal')">Keep going</button>
+  </div>
+</div>
+
+<!-- Reward Unlock -->
+<div class="modal-overlay" id="rewardUnlockModal">
+  <div class="modal">
+    <h2 style="color:var(--green)">Week complete. Reward unlocked.</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Discipline paid off. Choose one reward to unlock.</p>
+    <div id="rewardChooseList"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('rewardUnlockModal')">Later</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Reward -->
+<div class="modal-overlay" id="addRewardModal">
+  <div class="modal">
+    <h2 id="addRewardTitle">Add Reward</h2>
+    <div class="form-group"><label>Reward Name</label><input type="text" id="r_name" placeholder="e.g. Movie Night"></div>
+    <div class="form-group"><label>Description</label><textarea id="r_desc" placeholder="What does this reward involve?" style="min-height:56px"></textarea></div>
+    <div class="form-group"><label>Cost / Value (optional)</label><input type="text" id="r_cost" placeholder="e.g. ~$15 or Free"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('addRewardModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveReward()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- iPhone Install Help -->
+<div class="modal-overlay" id="installModal">
+  <div class="modal">
+    <h2 style="color:var(--blue)">Add to Home Screen</h2>
+    <div class="install-steps">
+      <div><strong>On iPhone (Safari):</strong></div>
+      <div>1. Tap the <strong>Share</strong> button (square with arrow)</div>
+      <div>2. Scroll down and tap <strong>Add to Home Screen</strong></div>
+      <div>3. Tap <strong>Add</strong> — the app icon appears on your home screen</div>
+      <div>4. Open it like any app — your progress saves automatically</div>
+      <br>
+      <div style="color:var(--muted);font-size:12px">All data is saved in your browser's localStorage. Export weekly from Settings as a backup.</div>
+    </div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="btn btn-primary btn-block" onclick="closeModal('installModal')">Got it</button>
+    </div>
+  </div>
+</div>
+
+<!-- First-Load Start Date Picker -->
+<div class="modal-overlay" id="startDateModal">
+  <div class="modal">
+    <h2 style="color:var(--blue)">Set Your Week 1 Start</h2>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px">Pick the Monday that begins Week 1 of your study plan. This locks the calendar so dates don't drift week to week.</p>
+    <div class="form-group">
+      <label>Week 1 Monday</label>
+      <input type="date" id="startDateInput">
+    </div>
+    <div style="font-size:11px;color:var(--faint);margin-bottom:8px" id="startDateHint">Tip: pick a past or future Monday. You can change this later in Settings.</div>
+    <div class="modal-actions">
+      <button class="btn btn-primary btn-block" onclick="confirmStartDate()">Start Plan</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cross-Day Wrong Answer Log -->
+<div class="modal-overlay" id="walModal">
+  <div class="modal">
+    <h2>Wrong Answer Log — Week <span id="walWeek"></span></h2>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">All entries from this week. Use the weekly reset to find repeating patterns.</div>
+    <div id="walContent" style="max-height:60vh;overflow-y:auto"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('walModal')">Close</button>
+      <button class="btn btn-primary" onclick="walShowAll()">Show All Weeks</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm Dialog (replaces native confirm for nicer UX) -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <h2 id="confirmTitle">Confirm</h2>
+    <div id="confirmBody" style="font-size:14px;color:var(--muted);margin-bottom:8px"></div>
+    <div id="confirmWarning" style="font-size:12px;color:var(--red);margin-bottom:8px;display:none"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('confirmModal')">Cancel</button>
+      <button class="btn btn-danger" id="confirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     Header
+     ════════════════════════════════════ -->
+<div class="header">
+  <div class="header-logo">
+    <h1>LSAT Prep</h1>
+    <p id="headerSubtitle">18-week plan · Target: 170</p>
+  </div>
+  <div class="header-right">
+    <div class="header-pct">
+      <div class="header-pct-val" id="globalPct">0%</div>
+      <div class="header-pct-lbl">Overall</div>
+    </div>
+    <div class="icon-btn" onclick="openModal('installModal')" title="Add to Home Screen">📲</div>
+  </div>
+</div>
+
+<div class="app">
+
+<!-- ════════════ TAB: TODAY ════════════ -->
+<div class="tab-pane active" id="tab-today">
+
+  <!-- XP Widget -->
+  <div class="xp-widget">
+    <div class="xp-top">
+      <span class="xp-level-pill" id="xp-lvl-pill">Lv 1</span>
+      <span class="xp-level-name" id="xp-lvl-name">Applicant</span>
+      <span class="xp-motivator" id="xp-motivator">Small wins stack.</span>
+    </div>
+    <div class="xp-bar-wrap"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+    <div class="xp-bar-meta"><span id="xp-cur-lbl">0 XP</span><span id="xp-next-lbl">Next: 100</span></div>
+    <div class="xp-stats-row">
+      <div class="xp-stat-box"><div class="xp-stat-val" id="xp-total">0</div><div class="xp-stat-lbl">Total XP</div></div>
+      <div class="xp-stat-box"><div class="xp-stat-val" id="xp-daily">0</div><div class="xp-stat-lbl">Today</div></div>
+      <div class="xp-stat-box"><div class="xp-stat-val" id="xp-lvl-num">1</div><div class="xp-stat-lbl">Level</div></div>
+    </div>
+  </div>
+
+  <!-- Streak + Reward row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+    <div class="streak-widget" style="flex-direction:column;gap:4px;padding:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="streak-flame">🔥</span>
+        <div>
+          <div class="streak-val" id="streak-val">0</div>
+          <div class="streak-lbl">Day streak</div>
+        </div>
+      </div>
+      <div class="streak-best" id="streak-best">Best: 0</div>
+    </div>
+    <div class="reward-bar" style="margin-bottom:0">
+      <div class="reward-bar-top">
+        <span class="reward-bar-lbl">This week</span>
+        <span class="reward-pct" id="rw-pct">0%</span>
+      </div>
+      <div class="reward-track"><div class="reward-fill" id="rw-fill" style="width:0%"></div></div>
+      <div class="reward-status" id="rw-status">Complete tasks to earn a reward.</div>
+      <button class="btn btn-green btn-sm" id="rw-claim-btn" style="display:none;margin-top:8px;width:100%" onclick="openRewardChoose()">Choose Reward ★</button>
+    </div>
+  </div>
+
+  <!-- Week nav -->
+  <div class="week-nav">
+    <div class="week-arrow" onclick="changeWeek(-1)">←</div>
+    <div class="week-label">
+      <div class="week-label-main" id="weekLabel">Week 1</div>
+      <div class="week-label-phase" id="phaseLabel">Phase 1 — Foundation</div>
+    </div>
+    <div class="week-arrow" onclick="changeWeek(1)">→</div>
+  </div>
+
+  <!-- Day pills -->
+  <div class="day-nav" id="dayNav"></div>
+
+  <!-- Week progress -->
+  <div class="week-progress-wrap"><div class="week-progress-bar" id="weekProgress" style="width:0%"></div></div>
+
+  <!-- Day content -->
+  <div id="dayView"></div>
+</div>
+
+<!-- ════════════ TAB: REWARDS ════════════ -->
+<div class="tab-pane" id="tab-rewards">
+  <div class="section-heading">Reward Tracker</div>
+  <div class="section-sub">You earned it. Claim it without guilt.</div>
+
+  <div class="card" style="margin-bottom:12px">
+    <div class="card-body">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+        <div style="flex:1">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:4px">Weekly Completion</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:22px;font-weight:800;color:var(--green)" id="rw2-pct">0%</span>
+            <div style="flex:1;height:7px;background:var(--card2);border-radius:4px;overflow:hidden"><div style="height:100%;background:linear-gradient(90deg,var(--green),var(--blue));border-radius:4px;transition:width .4s" id="rw2-fill"></div></div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--muted)" id="rw2-msg">Complete tasks to earn this week's reward.</div>
+      <button class="btn btn-green btn-sm" id="rw2-claim-btn" style="display:none;margin-top:8px;width:100%" onclick="openRewardChoose()">Choose Reward ★</button>
+    </div>
+  </div>
+
+  <div class="quick-add-row">
+    <button class="btn btn-ghost btn-sm" onclick="openAddReward()">+ Add</button>
+    <button class="btn btn-ghost btn-sm" onclick="quickAdd('Coffee run','The good place. Not the machine.','~$6')">☕ Coffee</button>
+    <button class="btn btn-ghost btn-sm" onclick="quickAdd('Night Off','No LSAT, no guilt.')">🌙 Night Off</button>
+    <button class="btn btn-ghost btn-sm" onclick="quickAdd('Takeout','Whatever you want.','~$20')">🍜 Takeout</button>
+    <button class="btn btn-ghost btn-sm" onclick="quickAdd('Game Night','One guilt-free session.')">🎮 Gaming</button>
+  </div>
+
+  <div id="rewardList"></div>
+  <div id="rewardEmpty" class="empty-state" style="display:none">
+    <div class="empty-icon">★</div>
+    Add something worth working for.
+  </div>
+</div>
+
+<!-- ════════════ TAB: SETTINGS ════════════ -->
+<div class="tab-pane" id="tab-settings">
+  <div class="section-heading">Settings</div>
+  <div class="section-sub">Configure your study tracker</div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-header" style="cursor:default"><div class="card-header-label">XP &amp; Rewards</div></div>
+    <div class="card-body">
+      <div class="settings-row">
+        <div><div class="settings-lbl">Enable XP system</div><div class="settings-sub">Earn XP for completing daily tasks</div></div>
+        <input type="checkbox" class="toggle" id="cfg-xp" onchange="saveCfg()" checked>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-lbl">Enable weekly rewards</div><div class="settings-sub">Unlock a reward when target is met</div></div>
+        <input type="checkbox" class="toggle" id="cfg-rewards" onchange="saveCfg()" checked>
+      </div>
+      <div class="settings-row">
+        <div><div class="settings-lbl">Completion threshold</div><div class="settings-sub">% of weekly tasks needed to unlock reward</div></div>
+        <select id="cfg-threshold" onchange="saveCfg()" style="width:90px;font-size:14px">
+          <option value="70">70%</option><option value="80" selected>80%</option>
+          <option value="90">90%</option><option value="100">100%</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-header" style="cursor:default"><div class="card-header-label">XP Rates</div></div>
+    <div class="card-body">
+      <div class="xp-rate-row"><span class="xp-rate-val">+10</span><span style="color:var(--muted)">Complete any task</span></div>
+      <div class="xp-rate-row"><span class="xp-rate-val">+50</span><span style="color:var(--muted)">All tasks done today (bonus)</span></div>
+      <div class="xp-rate-row"><span class="xp-rate-val">+75</span><span style="color:var(--muted)">Full practice test day</span></div>
+      <div class="xp-rate-row"><span class="xp-rate-val">+25</span><span style="color:var(--muted)">Section drill tasks</span></div>
+      <div class="xp-rate-row"><span class="xp-rate-val">+20</span><span style="color:var(--muted)">Weekly reset completed</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-header" style="cursor:default"><div class="card-header-label">Level Titles</div></div>
+    <div class="card-body">
+      <div class="level-grid">
+        <div class="level-item"><span>Lv 1</span> Applicant</div>
+        <div class="level-item"><span>Lv 2</span> Brief Builder</div>
+        <div class="level-item"><span>Lv 3</span> Case Cracker</div>
+        <div class="level-item"><span>Lv 4</span> Logic Slayer</div>
+        <div class="level-item"><span>Lv 5</span> Admissions Operator</div>
+        <div class="level-item"><span>Lv 6</span> Scholarship Hunter</div>
+        <div class="level-item"><span>Lv 7</span> Law School Sniper</div>
+        <div class="level-item"><span>Lv 8</span> 170 Locked</div>
+        <div class="level-item"><span>Lv 9</span> Future Counsel</div>
+        <div class="level-item"><span>Lv 10</span> Full Ride Threat</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-header" style="cursor:default"><div class="card-header-label">Schedule</div></div>
+    <div class="card-body">
+      <div class="settings-row">
+        <div>
+          <div class="settings-lbl">Week 1 Start (Monday)</div>
+          <div class="settings-sub" id="cfg-start-display">Not set</div>
+        </div>
+        <input type="date" id="cfg-start-date" style="width:160px;font-size:13px" onchange="changeStartDate(this.value)">
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-header" style="cursor:default"><div class="card-header-label">Backup &amp; Restore</div></div>
+    <div class="card-body">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Export weekly. One file = full restore. localStorage can be wiped without warning by Safari, OS updates, or "clear site data."</p>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-sm" onclick="exportData()">⤓ Export</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()">⤒ Import</button>
+      </div>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importData(this.files[0])">
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-header" style="cursor:default"><div class="card-header-label">Data &amp; Reset</div></div>
+    <div class="card-body">
+      <div class="btn-row" style="margin-bottom:10px">
+        <button class="btn btn-danger btn-sm" onclick="resetXP()">Reset XP</button>
+        <button class="btn btn-danger btn-sm" onclick="resetRewards()">Reset Rewards</button>
+        <button class="btn btn-danger btn-sm" onclick="resetWeekReward()">Reset Week</button>
+      </div>
+      <div style="font-size:11px;color:var(--faint)">Resetting XP zeroes your total and level. Checklist progress, reflections, and wrong answer logs are not affected.</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:10px">
+    <div class="card-header" style="cursor:default"><div class="card-header-label">Add to Home Screen</div></div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Open this in iPhone Safari, then tap Share → "Add to Home Screen" to use it like a native app. Offline support depends on whether the file is hosted (service worker activates) or saved locally (browser cache only).</p>
+      <button class="btn btn-ghost btn-block btn-sm" onclick="openModal('installModal')">📲 Show Instructions</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- /.app -->
+
+<!-- ════════════════════════════════════════
+     Bottom Tab Bar
+     ════════════════════════════════════ -->
+<div class="tab-bar">
+  <button class="tab-item active" onclick="switchTab('today',this)" id="tabToday">
+    <span class="tab-icon">📋</span>
+    <span class="tab-label">Today</span>
+  </button>
+  <button class="tab-item" onclick="switchTab('rewards',this)" id="tabRewards">
+    <span class="tab-icon">★</span>
+    <span class="tab-label">Rewards</span>
+  </button>
+  <button class="tab-item" onclick="switchTab('settings',this)" id="tabSettings">
+    <span class="tab-icon">⚙</span>
+    <span class="tab-label">Settings</span>
+  </button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// LocalStorage Save System
+// ═══════════════════════════════════════════════════════════
+const XP_KEY    = 'lsat_xp_state';
+const STATE_KEY = 'lsatck2';
+const NAV_KEY   = 'lsatnav2';
+
+let xpState = {
+  total: 0, todayXP: 0, lastDay: '',
+  weekRewardUnlocked: false,
+  streak: 0, bestStreak: 0, lastStudyDay: '',
+  rewards: [],
+  cfg: { xpEnabled: true, rewardsEnabled: true, threshold: '80' }
+};
+let state = {};
+let WEEK1_START = null; // set after loadState() — derived from state.startDate
+
+function saveXP() { localStorage.setItem(XP_KEY, JSON.stringify(xpState)); }
+function saveState() {
+  localStorage.setItem(STATE_KEY, JSON.stringify(state));
+  localStorage.setItem(NAV_KEY, JSON.stringify({ w: currentWeek, d: currentDay }));
+}
+function loadXP() {
+  try {
+    const r = localStorage.getItem(XP_KEY);
+    if (r) { const d = JSON.parse(r); xpState = Object.assign({}, xpState, d); }
+    if (!xpState.rewards) xpState.rewards = [];
+    if (!xpState.cfg) xpState.cfg = { xpEnabled: true, rewardsEnabled: true, threshold: '80' };
+  } catch(e) {}
+}
+function loadState() {
+  try {
+    const r = localStorage.getItem(STATE_KEY);
+    if (r) state = JSON.parse(r);
+    const n = localStorage.getItem(NAV_KEY);
+    if (n) { const v = JSON.parse(n); currentWeek = v.w || currentWeek; currentDay = v.d || currentDay; }
+  } catch(e) {}
+}
+
+// Combined save
+function saveAll() {
+  saveState();
+  saveXP();
+}
+
+// ═══════════════════════════════════════════════════════════
+// XP + Reward System
+// ═══════════════════════════════════════════════════════════
+const LEVELS = [
+  {lvl:1, name:'Applicant',           xp:0},
+  {lvl:2, name:'Brief Builder',       xp:100},
+  {lvl:3, name:'Case Cracker',        xp:250},
+  {lvl:4, name:'Logic Slayer',        xp:500},
+  {lvl:5, name:'Admissions Operator', xp:900},
+  {lvl:6, name:'Scholarship Hunter',  xp:1400},
+  {lvl:7, name:'Law School Sniper',   xp:2100},
+  {lvl:8, name:'170 Locked',          xp:3000},
+  {lvl:9, name:'Future Counsel',      xp:4200},
+  {lvl:10,name:'Full Ride Threat',    xp:6000},
+];
+const MOTIVATORS = [
+  "Small wins stack.",
+  "Discipline is building your score.",
+  "Another task down. Keep moving.",
+  "You earned it. Claim it without guilt.",
+  "The work today is the score in September.",
+  "Consistency over intensity.",
+  "Every completed task is a signal.",
+  "Scholarship odds improve when consistency improves.",
+];
+
+function getLevelInfo(total) {
+  let cur = LEVELS[0];
+  for (let i = LEVELS.length-1; i >= 0; i--) { if (total >= LEVELS[i].xp) { cur = LEVELS[i]; break; } }
+  const next = LEVELS.find(l => l.lvl === cur.lvl + 1);
+  const inLvl = total - cur.xp;
+  const toNext = next ? next.xp - cur.xp : 1;
+  const pct = next ? Math.min(100, Math.round(inLvl / toNext * 100)) : 100;
+  return { cur, next, pct, total };
+}
+
+function awardXP(amount, label) {
+  if (!xpState.cfg.xpEnabled) return;
+  const before = getLevelInfo(xpState.total);
+  xpState.total += amount;
+  xpState.todayXP = (xpState.todayXP || 0) + amount;
+  const after = getLevelInfo(xpState.total);
+  saveXP();
+  showToast(`+${amount} XP — ${label}`, 'xp');
+  if (after.cur.lvl > before.cur.lvl) setTimeout(() => showLevelUp(after.cur), 450);
+  updateXpUI();
+}
+
+function showLevelUp(lvl) {
+  document.getElementById('lu-title').textContent = `Level ${lvl.lvl} — ${lvl.name}`;
+  document.getElementById('lu-sub').textContent = `${lvl.name} unlocked.`;
+  document.getElementById('lu-mot').textContent = MOTIVATORS[(lvl.lvl - 1) % MOTIVATORS.length];
+  openModal('levelupModal');
+}
+
+function updateXpUI() {
+  const info = getLevelInfo(xpState.total || 0);
+  const daily = xpState.todayXP || 0;
+  const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const setW   = (id, w) => { const el = document.getElementById(id); if (el) el.style.width = w + '%'; };
+  setTxt('xp-lvl-pill', 'Lv ' + info.cur.lvl);
+  setTxt('xp-lvl-name', info.cur.name);
+  setTxt('xp-motivator', MOTIVATORS[(info.cur.lvl - 1) % MOTIVATORS.length]);
+  setW('xp-bar', info.pct);
+  setTxt('xp-cur-lbl', info.total + ' XP');
+  setTxt('xp-next-lbl', info.next ? 'Next: ' + info.next.xp : 'Max Level');
+  setTxt('xp-total', info.total);
+  setTxt('xp-daily', daily);
+  setTxt('xp-lvl-num', info.cur.lvl);
+  // Streak
+  setTxt('streak-val', xpState.streak || 0);
+  setTxt('streak-best', 'Best: ' + (xpState.bestStreak || 0));
+}
+
+// ── Streak ──
+function daysBetween(a, b) {
+  const da = new Date(a + 'T00:00:00');
+  const db = new Date(b + 'T00:00:00');
+  return Math.round((db - da) / 86400000);
+}
+function updateStreak() {
+  const today = ymd(new Date());
+  if (xpState.lastStudyDay === today) return; // already counted
+  if (!xpState.lastStudyDay) {
+    xpState.streak = 1;
+  } else {
+    const gap = daysBetween(xpState.lastStudyDay, today);
+    if (gap === 1) xpState.streak = (xpState.streak || 0) + 1;
+    else xpState.streak = 1; // any gap > 1 day breaks the streak
+  }
+  xpState.lastStudyDay = today;
+  if (xpState.streak > (xpState.bestStreak || 0)) xpState.bestStreak = xpState.streak;
+  saveXP(); updateXpUI();
+}
+// On app load: if last study was 2+ days ago, the streak is already broken — show it as 0 visually until they study today.
+function decayStreakIfStale() {
+  if (!xpState.lastStudyDay) return;
+  const today = ymd(new Date());
+  const gap = daysBetween(xpState.lastStudyDay, today);
+  if (gap > 1) {
+    xpState.streak = 0;
+    saveXP();
+  }
+}
+
+// ── Weekly reward ──
+function calcWeeklyPct() {
+  const sc = WEEK_SCHEDULES[currentWeek] || [];
+  let total = 0, done = 0;
+  sc.forEach((code, d) => {
+    const tm = DAY_TEMPLATES[code];
+    const all = [...tm.lr, ...tm.rc, ...tm.timed];
+    total += all.length;
+    all.forEach((_, i) => { if (getCheck(currentWeek, d, i)) done++; });
+  });
+  return total ? Math.round(done / total * 100) : 0;
+}
+
+function checkWeeklyReward() {
+  if (!xpState.cfg.rewardsEnabled) return;
+  const pct = calcWeeklyPct();
+  const threshold = parseInt(xpState.cfg.threshold || '80');
+  if (pct >= threshold && !xpState.weekRewardUnlocked) {
+    xpState.weekRewardUnlocked = true;
+    saveXP();
+    showToast('Week complete. Reward unlocked. Discipline paid off.', 'reward');
+    setTimeout(() => openRewardChoose(), 700);
+  }
+  updateRewardUI();
+}
+
+function updateRewardUI() {
+  const pct = calcWeeklyPct();
+  const threshold = parseInt(xpState.cfg.threshold || '80');
+  const unlocked = xpState.weekRewardUnlocked;
+  const claimed = (xpState.rewards || []).filter(r => r.status === 'Claimed').length;
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  const setW = (id, w) => { const el = document.getElementById(id); if (el) el.style.width = Math.min(w, 100) + '%'; };
+  const setD = (id, v) => { const el = document.getElementById(id); if (el) el.style.display = v; };
+
+  set('rw-pct', pct + '%');   setW('rw-fill', pct);
+  set('rw2-pct', pct + '%');  setW('rw2-fill', pct);
+
+  const msg = unlocked ? 'Reward unlocked — go claim it.' : `${Math.max(0, threshold - pct)}% more for reward.`;
+  const msgEl = document.getElementById('rw-status');
+  if (msgEl) { msgEl.textContent = msg; msgEl.className = 'reward-status' + (unlocked ? ' unlocked' : ''); }
+  set('rw2-msg', unlocked ? `Week complete. ${claimed} reward${claimed !== 1 ? 's' : ''} claimed all-time.` : msg);
+
+  setD('rw-claim-btn',  unlocked ? 'block' : 'none');
+  setD('rw2-claim-btn', unlocked ? 'block' : 'none');
+}
+
+// ── Daily reset ──
+function checkDailyReset() {
+  const today = new Date().toISOString().split('T')[0];
+  if (xpState.lastDay && xpState.lastDay !== today) {
+    xpState.todayXP = 0;
+    xpState.weekRewardUnlocked = false;
+  }
+  xpState.lastDay = today;
+  saveXP();
+}
+
+// ── Rewards CRUD ──
+let editRewardId = null;
+
+function openAddReward() {
+  editRewardId = null;
+  document.getElementById('addRewardTitle').textContent = 'Add Reward';
+  ['r_name','r_desc','r_cost'].forEach(id => document.getElementById(id).value = '');
+  openModal('addRewardModal');
+}
+function quickAdd(name, desc, cost = '') {
+  xpState.rewards.push({ id: Date.now().toString(), name, desc, cost, status: 'Locked' });
+  saveXP(); renderRewards();
+}
+function saveReward() {
+  const name = (document.getElementById('r_name').value || '').trim();
+  if (!name) { alert('Name required.'); return; }
+  const reward = {
+    id: editRewardId || Date.now().toString(), name,
+    desc: document.getElementById('r_desc').value,
+    cost: document.getElementById('r_cost').value,
+    status: editRewardId ? (xpState.rewards.find(r => r.id === editRewardId) || {}).status || 'Locked' : 'Locked'
+  };
+  if (editRewardId) { const i = xpState.rewards.findIndex(r => r.id === editRewardId); if (i >= 0) xpState.rewards[i] = reward; }
+  else xpState.rewards.push(reward);
+  saveXP(); closeModal('addRewardModal'); renderRewards();
+}
+function deleteReward(id) {
+  showConfirm('Delete reward?', 'This removes the reward from your list permanently.', '', () => {
+    xpState.rewards = xpState.rewards.filter(r => r.id !== id);
+    saveXP(); renderRewards();
+  });
+}
+function setRewardStatus(id, status) {
+  const r = xpState.rewards.find(x => x.id === id);
+  if (r) {
+    r.status = status;
+    if (status === 'Claimed') showToast('Reward claimed. You earned it.', 'reward');
+    saveXP(); renderRewards(); updateRewardUI();
+  }
+}
+function openRewardChoose() {
+  const avail = (xpState.rewards || []).filter(r => r.status === 'Locked');
+  if (!avail.length) { showToast('Add rewards in the Rewards tab first.', 'reward'); return; }
+  document.getElementById('rewardChooseList').innerHTML = avail.map(r => `
+    <div class="reward-choose-item" onclick="unlockReward('${r.id}',this)">
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:var(--text)">${esc(r.name)}</div>
+        <div style="font-size:12px;color:var(--muted)">${esc(r.desc||'')}</div>
+        ${r.cost ? `<div style="font-size:11px;color:var(--faint);margin-top:2px">${esc(r.cost)}</div>` : ''}
+      </div>
+    </div>`).join('');
+  openModal('rewardUnlockModal');
+}
+function unlockReward(id, el) {
+  document.querySelectorAll('.reward-choose-item').forEach(e => e.classList.remove('selected'));
+  el.classList.add('selected');
+  setTimeout(() => {
+    const r = xpState.rewards.find(x => x.id === id);
+    if (r) { r.status = 'Unlocked'; saveXP(); renderRewards(); updateRewardUI(); closeModal('rewardUnlockModal'); showToast(`"${r.name}" unlocked. Claim it when ready.`, 'reward'); }
+  }, 300);
+}
+function editReward(id) {
+  const r = xpState.rewards.find(x => x.id === id); if (!r) return;
+  editRewardId = id;
+  document.getElementById('addRewardTitle').textContent = 'Edit Reward';
+  document.getElementById('r_name').value = r.name;
+  document.getElementById('r_desc').value = r.desc || '';
+  document.getElementById('r_cost').value = r.cost || '';
+  openModal('addRewardModal');
+}
+function renderRewards() {
+  const list = document.getElementById('rewardList');
+  const empty = document.getElementById('rewardEmpty');
+  if (!list) return;
+  const rewards = xpState.rewards || [];
+  if (!rewards.length) { list.innerHTML = ''; if (empty) empty.style.display = 'block'; updateRewardUI(); return; }
+  if (empty) empty.style.display = 'none';
+  const ord = { Unlocked: 0, Locked: 1, Claimed: 2 };
+  const sorted = [...rewards].sort((a, b) => (ord[a.status]||1) - (ord[b.status]||1));
+  list.innerHTML = sorted.map(r => {
+    const isU = r.status === 'Unlocked', isC = r.status === 'Claimed';
+    return `<div class="reward-card${isU?' unlocked':''}${isC?' claimed':''}">
+      <div class="reward-card-icon">${isC ? '✓' : isU ? '★' : '○'}</div>
+      <div class="reward-card-body">
+        <div class="reward-name">${esc(r.name)}</div>
+        ${r.desc ? `<div class="reward-desc">${esc(r.desc)}</div>` : ''}
+        <div class="reward-meta">
+          ${r.cost ? `<span class="reward-cost">${esc(r.cost)}</span>` : ''}
+          <span class="status-pill status-${r.status.toLowerCase()}">${r.status}</span>
+        </div>
+      </div>
+      <div class="reward-actions">
+        ${isU ? `<button class="btn btn-green btn-sm" onclick="setRewardStatus('${r.id}','Claimed')">Claim</button>` : ''}
+        ${!isC ? `<button class="btn btn-ghost btn-sm" onclick="editReward('${r.id}')">Edit</button>` : ''}
+        <button class="btn btn-danger btn-sm" onclick="deleteReward('${r.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+  updateRewardUI();
+}
+
+// ── Settings ──
+function saveCfg() {
+  xpState.cfg.xpEnabled = document.getElementById('cfg-xp').checked;
+  xpState.cfg.rewardsEnabled = document.getElementById('cfg-rewards').checked;
+  xpState.cfg.threshold = document.getElementById('cfg-threshold').value;
+  saveXP(); updateRewardUI();
+}
+function loadCfg() {
+  const e1 = document.getElementById('cfg-xp');
+  const e2 = document.getElementById('cfg-rewards');
+  const e3 = document.getElementById('cfg-threshold');
+  if (e1) e1.checked = xpState.cfg.xpEnabled !== false;
+  if (e2) e2.checked = xpState.cfg.rewardsEnabled !== false;
+  if (e3) e3.value = xpState.cfg.threshold || '80';
+  const e4 = document.getElementById('cfg-start-date');
+  const e5 = document.getElementById('cfg-start-display');
+  if (e4 && state.startDate) e4.value = state.startDate;
+  if (e5) e5.textContent = state.startDate
+    ? `${parseYMD(state.startDate).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'})}`
+    : 'Not set';
+}
+function resetXP() {
+  showConfirm(
+    'Reset XP?',
+    'Sets total XP and level back to zero. Streak and best streak are preserved.',
+    'Checklist completion, reflections, and wrong answer logs are NOT affected.',
+    () => {
+      xpState.total = 0; xpState.todayXP = 0; saveXP(); updateXpUI();
+      showToast('XP reset.', 'xp');
+    }
+  );
+}
+function resetRewards() {
+  const claimedCount = (xpState.rewards||[]).filter(r => r.status==='Claimed').length;
+  showConfirm(
+    'Reset all rewards?',
+    'Sets every reward back to "Locked" — including ones you already claimed.',
+    claimedCount ? `You will lose the record of ${claimedCount} claimed reward${claimedCount===1?'':'s'}. The rewards themselves are not deleted, just their status.` : 'No rewards have been claimed yet, so no history will be lost.',
+    () => {
+      xpState.rewards.forEach(r => r.status = 'Locked'); xpState.weekRewardUnlocked = false;
+      saveXP(); renderRewards(); updateRewardUI();
+      showToast('Rewards reset.', 'reward');
+    }
+  );
+}
+function resetWeekReward() {
+  xpState.weekRewardUnlocked = false; saveXP(); updateRewardUI();
+  showToast('Week reward reset.', 'reward');
+}
+
+// ── Toast ──
+function showToast(msg, cls = '') {
+  const c = document.getElementById('toast-container');
+  const t = document.createElement('div');
+  t.className = 'toast ' + cls; t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 350); }, 3000);
+}
+
+// ── Modal ──
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('open'); });
+
+// ── Tab switching ──
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (id === 'rewards') { renderRewards(); updateRewardUI(); }
+}
+
+// ── Utils ──
+function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ═══════════════════════════════════════════════════════════
+// Backup / Restore (P0.2)
+// ═══════════════════════════════════════════════════════════
+function exportData() {
+  const payload = {
+    version: 4,
+    exportedAt: new Date().toISOString(),
+    state: state,
+    xpState: xpState,
+    nav: { w: currentWeek, d: currentDay }
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `lsat-backup-${ymd(new Date())}.json`;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('Backup downloaded.', 'reward');
+}
+function importData(file) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.state || !data.xpState) throw new Error('Invalid backup file.');
+      showConfirm(
+        'Restore from backup?',
+        'This replaces ALL current progress (XP, checklists, reflections, rewards) with the contents of the backup file.',
+        'This action cannot be undone. Export your current state first if you want a rollback.',
+        () => {
+          state = data.state;
+          xpState = Object.assign({
+            total: 0, todayXP: 0, lastDay: '', weekRewardUnlocked: false,
+            streak: 0, bestStreak: 0, lastStudyDay: '', rewards: [],
+            cfg: { xpEnabled: true, rewardsEnabled: true, threshold: '80' }
+          }, data.xpState);
+          if (data.nav) { currentWeek = data.nav.w || 1; currentDay = data.nav.d || 0; }
+          saveAll();
+          if (state.startDate) WEEK1_START = parseYMD(state.startDate);
+          loadCfg(); renderWeek(); updateXpUI(); renderRewards(); updateRewardUI();
+          showToast('Backup restored.', 'reward');
+        }
+      );
+    } catch (err) {
+      showToast('Invalid backup file.', 'reward');
+    }
+  };
+  reader.readAsText(file);
+  document.getElementById('importFile').value = '';
+}
+
+// ═══════════════════════════════════════════════════════════
+// Start Date Picker (P0.3)
+// ═══════════════════════════════════════════════════════════
+function showStartDatePicker() {
+  const today = new Date();
+  const monday = getWeekStart(today);
+  const input = document.getElementById('startDateInput');
+  if (input) input.value = ymd(monday);
+  openModal('startDateModal');
+}
+function confirmStartDate() {
+  const v = document.getElementById('startDateInput').value;
+  if (!v) { showToast('Pick a date.', ''); return; }
+  setStartDate(v);
+  closeModal('startDateModal');
+  initPos();
+  renderWeek();
+  loadCfg();
+  showToast(`Week 1 set to ${WEEK1_START.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}.`, 'reward');
+}
+function changeStartDate(v) {
+  if (!v) return;
+  showConfirm(
+    'Change Week 1 start?',
+    'This shifts all calendar dates. Your task completion data, reflections, and wrong answer logs are keyed to week+day numbers (not calendar dates), so they stay intact — only the displayed dates change.',
+    '',
+    () => {
+      setStartDate(v);
+      initPos(); renderWeek(); loadCfg();
+      showToast('Start date updated.', 'reward');
+    }
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// Confirm Dialog (replaces native confirm — nicer + warning slot)
+// ═══════════════════════════════════════════════════════════
+function showConfirm(title, body, warning, onOk) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmBody').textContent = body;
+  const w = document.getElementById('confirmWarning');
+  if (warning) { w.textContent = warning; w.style.display = 'block'; } else { w.style.display = 'none'; }
+  const btn = document.getElementById('confirmOkBtn');
+  const fresh = btn.cloneNode(true);
+  btn.parentNode.replaceChild(fresh, btn);
+  fresh.onclick = () => { closeModal('confirmModal'); onOk(); };
+  openModal('confirmModal');
+}
+
+// ═══════════════════════════════════════════════════════════
+// Cross-Day Wrong Answer Log (P1.4)
+// ═══════════════════════════════════════════════════════════
+let walAllWeeks = false;
+function openWAL(showAll) {
+  walAllWeeks = !!showAll;
+  document.getElementById('walWeek').textContent = walAllWeeks ? 'All' : currentWeek;
+  renderWAL();
+  openModal('walModal');
+}
+function walShowAll() { walAllWeeks = !walAllWeeks; document.getElementById('walWeek').textContent = walAllWeeks ? 'All' : currentWeek; renderWAL(); }
+function renderWAL() {
+  const weeks = walAllWeeks ? Array.from({length:18},(_,i)=>i+1) : [currentWeek];
+  let html = '', total = 0;
+  weeks.forEach(w => {
+    const sc = WEEK_SCHEDULES[w] || [];
+    sc.forEach((code, d) => {
+      const rows = (state[`w${w}d${d}_wr`] || []).filter(r => (r.q||r.t||r.e));
+      if (!rows.length) return;
+      const date = getDate(w, d);
+      html += `<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--blue);margin-bottom:6px">Week ${w} · ${DAY_NAMES[d]} ${date.getDate()} · ${DAY_TEMPLATES[code].label}</div>`;
+      rows.forEach(r => {
+        total++;
+        html += `<div class="wrong-entry" style="margin-bottom:6px"><div style="font-size:13px"><strong style="color:var(--blue)">${esc(r.q||'?')}</strong> <span style="color:var(--muted)">· ${esc(r.s||'')}</span> <span style="color:var(--purple)">· ${esc(r.t||'')}</span></div>${r.e ? `<div style="font-size:12px;color:var(--muted);margin-top:3px;font-style:italic">${esc(r.e)}</div>` : ''}</div>`;
+      });
+      html += `</div>`;
+    });
+  });
+  if (!total) html = `<div class="empty-state"><div class="empty-icon">✓</div>No wrong-answer entries logged${walAllWeeks ? '' : ' this week'}.</div>`;
+  else html = `<div style="font-size:11px;color:var(--faint);margin-bottom:10px">${total} entr${total===1?'y':'ies'} total. Look for question types appearing 3+ times — those are your drill priorities.</div>` + html;
+  document.getElementById('walContent').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════════
+// LSAT Checklist Core
+// ═══════════════════════════════════════════════════════════
+const PHASE_MAP = {
+  1:"Foundation",2:"Foundation",3:"Foundation",
+  4:"Development",5:"Development",6:"Development",7:"Development",
+  8:"Pre-June Peak",9:"Pre-June Peak",
+  10:"Gap Analysis",11:"Gap Analysis",
+  12:"Targeted Drill",13:"Targeted Drill",14:"Targeted Drill",15:"Targeted Drill",
+  16:"Advanced",17:"Pre-Sept Peak",18:"Pre-Sept Peak"
+};
+
+const DAY_TEMPLATES = {
+  A:{type:"untimed",label:"Untimed Drill",color:"untimed",reviewNote:"No time pressure today. Focus is on understanding, not speed.",
+    lr:[{t:"Study 1 LR concept from Demon concept library. Read it, close it, explain it back to yourself in writing.",time:"20 min",res:"LSAT Demon"},{t:"20 untimed LR questions filtered by one question type. Identify conclusion, premise, and gap before answering.",time:"30 min",res:"LSAT Demon"},{t:"Review every wrong answer: reconstruct the argument, identify your exact error, write the pattern in one sentence.",time:"20 min",res:"Wrong Answer Log"}],
+    rc:[{t:"1 RC passage untimed. Before questions, write 2-3 sentences: main point, structure, author's tone.",time:"15 min",res:"LawHub"},{t:"Answer the passage questions. Review each wrong answer using the same reconstruction method.",time:"15 min",res:"LawHub"}],timed:[]},
+  B:{type:"timed",label:"Timed Drill",color:"timed",reviewNote:"Flag any question over 2 minutes — those are your skip-and-return candidates.",
+    lr:[{t:"10 LR questions at 1 min 25 sec each. Do not pause the clock. Mark uncertain answers.",time:"15 min",res:"LSAT Demon"},{t:"Second set: 10 LR questions timed, different question type.",time:"15 min",res:"LSAT Demon"},{t:"Review all wrong and uncertain answers. One sentence per error — what exactly went wrong.",time:"25 min",res:"Wrong Answer Log"}],
+    rc:[{t:"1 RC passage timed: 3.5 min reading (map each paragraph), then questions. Target: 8 min total.",time:"8 min",res:"LawHub"},{t:"Review: Did you understand the main point before reading questions? If not, you're reading too fast.",time:"10 min",res:"LawHub"}],
+    timed:[{t:"Optional: 1 additional timed LR set of 10 if energy allows.",time:"15 min",res:"LSAT Demon"}]},
+  C:{type:"timed",label:"Section Drill",color:"timed",reviewNote:"After review, count how many wrong answers share the same root cause — that pattern is your next drill target.",
+    lr:[{t:"Full timed LR section: 25 questions, 35 minutes. Real conditions — no phone, no interruptions.",time:"35 min",res:"LawHub"},{t:"Score and fully review the section. Every wrong answer gets a Wrong Answer Log entry.",time:"40 min",res:"Wrong Answer Log"}],
+    rc:[{t:"1-2 RC passages timed at 8 min each. Prioritize comparative/dual passages.",time:"16 min",res:"LawHub"},{t:"Review: restate the passage's main point first, then explain each wrong answer.",time:"10 min",res:"LawHub"}],timed:[]},
+  D:{type:"fullpt",label:"Full Practice Test",color:"fullpt",reviewNote:"Do not review tonight. Record your score, rest. Review is tomorrow's work.",
+    lr:[{t:"Full PT under strict conditions: 2 LR sections + 1 RC section, 35 min each. No extra breaks.",time:"105 min",res:"LawHub PrepTest"},{t:"Score all sections immediately. Record in PT Tracker before reading any explanations.",time:"10 min",res:"PT Tracker"}],rc:[],timed:[]},
+  E:{type:"timed",label:"PT Review",color:"timed",reviewNote:"Lucky guesses are wrong answers. Uncertain + correct = treat it as a miss.",
+    lr:[{t:"Review every LR wrong answer from yesterday's PT. Reconstruct each argument from memory first.",time:"45 min",res:"Wrong Answer Log"},{t:"Review all uncertain answers, even if correct. Write the pattern for each.",time:"15 min",res:"Wrong Answer Log"}],
+    rc:[{t:"Review all RC wrong answers. Restate the passage's main point, then explain why your answer was wrong.",time:"30 min",res:"Wrong Answer Log"}],timed:[]},
+  F:{type:"light",label:"Light Day",color:"light",reviewNote:"Recovery is productive. Fatigue kills accuracy. This is part of the plan.",
+    lr:[{t:"15-20 LR questions, untimed, your strongest question type only. Maintain sharpness, not grind.",time:"20 min",res:"LSAT Demon"}],
+    rc:[{t:"1 RC passage, no timer. Read for comprehension. Write a one-sentence main point after.",time:"12 min",res:"LawHub"}],timed:[]},
+  G:{type:"reset",label:"Weekly Reset",color:"reset",reviewNote:"This reflection determines what you drill next week. Be honest, not aspirational.",
+    lr:[{t:"Pull this week's Wrong Answer Log. List every distinct error pattern appearing more than once.",time:"15 min",res:"Wrong Answer Log"},{t:"Check LSAT Demon analytics. Identify your lowest-accuracy question type this week.",time:"10 min",res:"LSAT Demon"}],
+    rc:[{t:"Review your RC reflection notes from this week. Were you understanding the main point before or after reading questions?",time:"10 min",res:"Reflection notes"}],timed:[]}
+};
+
+const WEEK_SCHEDULES = {1:["A","A","A","A","A","F","G"],2:["A","A","A","A","B","F","G"],3:["B","B","A","B","C","F","G"],4:["B","C","B","C","B","F","G"],5:["B","C","B","C","B","F","G"],6:["C","D","E","B","C","F","G"],7:["C","B","D","E","C","F","G"],8:["D","E","C","D","E","F","G"],9:["F","F","B","F","F","F","G"],10:["A","A","A","F","F","F","G"],11:["A","B","A","B","F","F","G"],12:["B","C","B","C","B","F","G"],13:["B","C","B","C","D","E","G"],14:["C","B","C","D","E","F","G"],15:["C","D","E","C","B","F","G"],16:["D","E","C","D","E","F","G"],17:["D","E","C","D","E","F","G"],18:["F","F","B","F","F","F","G"]};
+
+const DAY_NAMES = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+
+function getWeekStart(refDate) {
+  const t = refDate ? new Date(refDate) : new Date();
+  const dow = t.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  const m = new Date(t); m.setDate(t.getDate() + diff); m.setHours(0,0,0,0); return m;
+}
+function ymd(d) { return d.toISOString().split('T')[0]; }
+function parseYMD(s) {
+  if (!s) return null;
+  const [y, m, d] = s.split('-').map(Number);
+  const dt = new Date(y, m-1, d); dt.setHours(0,0,0,0); return dt;
+}
+function initStartDate() {
+  // Returns true if start date is set, false if first-load picker needed
+  if (state.startDate) {
+    WEEK1_START = parseYMD(state.startDate);
+    return true;
+  }
+  return false;
+}
+function setStartDate(dateStr) {
+  // Snap to Monday of the chosen week
+  const picked = parseYMD(dateStr);
+  if (!picked) return false;
+  const monday = getWeekStart(picked);
+  state.startDate = ymd(monday);
+  WEEK1_START = monday;
+  saveState();
+  return true;
+}
+function getDate(w, d) { const dt = new Date(WEEK1_START); dt.setDate(dt.getDate() + (w-1)*7 + d); return dt; }
+function isToday(d) { const t = new Date(); return d.getDate()===t.getDate()&&d.getMonth()===t.getMonth()&&d.getFullYear()===t.getFullYear(); }
+function fmtDate(d) { return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+
+let currentWeek = 1, currentDay = 0;
+
+function initPos() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.floor((today - WEEK1_START) / 86400000);
+  if (diff >= 0) { currentWeek = Math.min(18, Math.floor(diff/7)+1); currentDay = Math.min(6, diff%7); }
+}
+
+function sk(w, d, f, i) { return `w${w}d${d}_${f}_${i}`; }
+function getCheck(w, d, i) { return state[sk(w,d,'task',i)] === true; }
+
+function setCheck(w, d, i, v) {
+  const was = getCheck(w, d, i);
+  state[sk(w,d,'task',i)] = v;
+  if (v && !was) {
+    const code = (WEEK_SCHEDULES[w]||[])[d] || 'A';
+    const tm = DAY_TEMPLATES[code];
+    let xp = 10, label = 'task complete';
+    if (code === 'D') { xp = 75; label = 'full PT day'; }
+    else if (code === 'C') { xp = 25; label = 'section drill'; }
+    awardXP(xp, label);
+    const all = [...tm.lr, ...tm.rc, ...tm.timed];
+    const allDone = all.every((_, idx) => idx === i ? true : state[sk(w,d,'task',idx)] === true);
+    if (allDone && all.length > 1) setTimeout(() => awardXP(50, 'all tasks — daily bonus'), 300);
+    updateStreak();
+    checkWeeklyReward();
+  }
+  saveState(); updateProgress();
+}
+
+function getText(w, d, f) { return state[`w${w}d${d}_${f}`] || ''; }
+function setText(w, d, f, v) { state[`w${w}d${d}_${f}`] = v; saveState(); }
+function getWR(w, d) { return state[`w${w}d${d}_wr`] || [{ q:'', s:'', t:'', e:'' }]; }
+function setWR(w, d, rows) { state[`w${w}d${d}_wr`] = rows; saveState(); }
+
+function updateProgress() {
+  const sc = WEEK_SCHEDULES[currentWeek] || [];
+  let tot = 0, dn = 0;
+  sc.forEach((code, d) => { const tm = DAY_TEMPLATES[code]; const all = [...tm.lr,...tm.rc,...tm.timed]; tot += all.length; all.forEach((_,i) => { if (getCheck(currentWeek,d,i)) dn++; }); });
+  const p = tot ? Math.round(dn/tot*100) : 0;
+  const bar = document.getElementById('weekProgress');
+  if (bar) bar.style.width = p + '%';
+  let gt = 0, gd = 0;
+  for (let w=1; w<=currentWeek; w++) { const s = WEEK_SCHEDULES[w]||[]; s.forEach((code,d)=>{ const tm=DAY_TEMPLATES[code]; const all=[...tm.lr,...tm.rc,...tm.timed]; gt+=all.length; all.forEach((_,i)=>{ if(state[sk(w,d,'task',i)])gd++; }); }); }
+  const gEl = document.getElementById('globalPct'); if (gEl) gEl.textContent = gt ? Math.round(gd/gt*100)+'%' : '0%';
+}
+
+function changeWeek(dir) { currentWeek = Math.max(1, Math.min(18, currentWeek+dir)); currentDay = 0; renderWeek(); }
+function selectDay(d) { currentDay = d; renderDay(); document.querySelectorAll('.day-pill').forEach((b,i) => { b.classList.toggle('active', i===d); if (i===d) b.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'}); }); }
+
+function renderWeek() {
+  const el = id => document.getElementById(id);
+  if (el('weekLabel')) el('weekLabel').textContent = `Week ${currentWeek} of 18`;
+  if (el('phaseLabel')) el('phaseLabel').textContent = `Phase 1 — ${PHASE_MAP[currentWeek]}`;
+  if (el('headerSubtitle') && WEEK1_START) {
+    const end = new Date(WEEK1_START); end.setDate(end.getDate() + 18*7 - 1);
+    const fmt = d => d.toLocaleDateString('en-US',{month:'short', year:'numeric'});
+    el('headerSubtitle').textContent = `${fmt(WEEK1_START)} – ${fmt(end)} · Target: 170`;
+  }
+  const sc = WEEK_SCHEDULES[currentWeek] || [];
+  const nav = el('dayNav'); if (!nav) return;
+  nav.innerHTML = '';
+  sc.forEach((code, i) => {
+    const d = getDate(currentWeek, i);
+    const pill = document.createElement('button');
+    pill.className = 'day-pill' + (i===currentDay?' active':'') + (isToday(d)?' today':'');
+    pill.textContent = DAY_NAMES[i] + ' ' + d.getDate();
+    pill.onclick = () => selectDay(i);
+    nav.appendChild(pill);
+  });
+  // Auto-center active pill
+  setTimeout(() => {
+    const active = nav.querySelector('.day-pill.active');
+    if (active) active.scrollIntoView({inline:'center', block:'nearest'});
+  }, 50);
+  renderDay(); updateProgress();
+}
+
+function addWR() { const rows = getWR(currentWeek, currentDay); rows.push({q:'',s:'',t:'',e:''}); setWR(currentWeek, currentDay, rows); renderDay(); }
+function updWR(f, i, v) { const rows = getWR(currentWeek, currentDay); rows[i][f] = v; setWR(currentWeek, currentDay, rows); }
+
+function renderDay() {
+  const sc = WEEK_SCHEDULES[currentWeek] || [];
+  const code = sc[currentDay]; const tm = DAY_TEMPLATES[code];
+  const date = getDate(currentWeek, currentDay);
+  const lrEnd = tm.lr.length, rcEnd = lrEnd + tm.rc.length;
+
+  const xpHints = { A:'+10 XP', B:'+10 XP +bonus', C:'+25 XP', D:'+75 XP', E:'+10 XP', F:'+10 XP', G:'+20 XP' };
+  const todayLabel = isToday(date) ? ` <span class="today-label">Today</span>` : '';
+
+  let html = `<div class="day-header">
+    <div class="day-date">${fmtDate(date)}${todayLabel}</div>
+    <span class="day-type-badge ${tm.color}">${tm.label}</span>
+    <span style="font-size:11px;color:var(--purple);font-weight:700">${xpHints[code]||'+10 XP'}</span>
+  </div>`;
+
+  function buildSection(title, tasks, tag, offset) {
+    if (!tasks.length) return '';
+    let rows = '';
+    tasks.forEach((task, i) => {
+      const gi = offset + i;
+      const ch = getCheck(currentWeek, currentDay, gi);
+      rows += `<div class="task-row">
+        <input type="checkbox" class="task-checkbox" id="c${gi}" ${ch?'checked':''} onchange="setCheck(${currentWeek},${currentDay},${gi},this.checked);document.getElementById('tl${gi}').className='task-text'+(this.checked?' done':'')">
+        <div class="task-content">
+          <label class="task-text${ch?' done':''}" id="tl${gi}" for="c${gi}">${task.t}</label>
+          <div class="task-footer">
+            <span class="task-time">${task.time}</span>
+            <span class="task-res">${task.res}</span>
+          </div>
+        </div>
+      </div>`;
+    });
+    return `<div class="card" style="margin-bottom:8px">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-header-label">${title}</div>
+        <span class="card-tag">${tag}</span>
+        <span style="color:var(--faint);margin-left:6px;font-size:12px">▾</span>
+      </div>
+      <div class="card-body">${rows}</div>
+    </div>`;
+  }
+
+  html += buildSection('Logical Reasoning', tm.lr, 'LR', 0);
+  html += buildSection('Reading Comprehension', tm.rc, 'RC', lrEnd);
+  if (tm.timed.length) html += buildSection('Optional Extra', tm.timed, 'Optional', rcEnd);
+
+  // Wrong answer log — mobile-friendly stacked cards
+  const wr = getWR(currentWeek, currentDay);
+  let wrEntries = wr.map((row, i) => `
+    <div class="wrong-entry">
+      <div class="wrong-entry-row">
+        <div><div class="ref-label">Question #</div><input type="text" value="${row.q||''}" placeholder="e.g. Q14" oninput="updWR('q',${i},this.value)"></div>
+        <div><div class="ref-label">LR / RC</div><input type="text" value="${row.s||''}" placeholder="LR" oninput="updWR('s',${i},this.value)"></div>
+      </div>
+      <div style="margin-bottom:6px"><div class="ref-label">Question Type</div><input type="text" value="${row.t||''}" placeholder="e.g. Flaw, Necessary Assumption..." oninput="updWR('t',${i},this.value)"></div>
+      <div><div class="ref-label">My Reasoning Error</div><input type="text" value="${row.e||''}" placeholder="What went wrong in my reasoning" oninput="updWR('e',${i},this.value)"></div>
+    </div>`).join('');
+  html += `<div class="card" style="margin-bottom:8px">
+    <div class="card-header" onclick="toggleCard(this)">
+      <div class="card-header-label">Wrong Answer Log</div>
+      <span class="card-tag">Quick entry</span>
+      <span style="color:var(--faint);margin-left:6px;font-size:12px">▾</span>
+    </div>
+    <div class="card-body">
+      <div class="wrong-log-grid" id="wrGrid">${wrEntries}</div>
+      <div class="btn-row" style="margin-top:10px">
+        <button class="btn btn-ghost btn-sm" onclick="addWR()">+ Add Entry</button>
+        <button class="btn btn-ghost btn-sm" onclick="openWAL(false)">📑 View Week</button>
+      </div>
+    </div>
+  </div>`;
+
+  // Reflection / Reset
+  if (code === 'G') {
+    const resetDoneFlag = state[`w${currentWeek}_resetDone`] === true;
+    html += `<div class="reset-section">
+      <h3>Weekly Reset — Week ${currentWeek}</h3>
+      <button class="btn btn-ghost btn-block btn-sm" style="margin-bottom:12px" onclick="openWAL(false)">📑 Review This Week's Wrong Answer Log</button>
+      <div class="score-grid">
+        <div class="score-box"><label>PT Score</label><input type="text" value="${getText(currentWeek,currentDay,'pt')}" placeholder="163" oninput="setText(${currentWeek},${currentDay},'pt',this.value)"></div>
+        <div class="score-box"><label>LR Raw</label><input type="text" value="${getText(currentWeek,currentDay,'lr')}" placeholder="44/50" oninput="setText(${currentWeek},${currentDay},'lr',this.value)"></div>
+        <div class="score-box"><label>RC Raw</label><input type="text" value="${getText(currentWeek,currentDay,'rc')}" placeholder="22/27" oninput="setText(${currentWeek},${currentDay},'rc',this.value)"></div>
+      </div>
+      <div class="reflection-grid">
+        <div><div class="ref-label">Top error pattern</div><textarea oninput="setText(${currentWeek},${currentDay},'rp',this.value)" placeholder="e.g. Necessary vs. sufficient confusion">${getText(currentWeek,currentDay,'rp')}</textarea></div>
+        <div><div class="ref-label">Drill target next week</div><textarea oninput="setText(${currentWeek},${currentDay},'rn',this.value)" placeholder="e.g. Flaw questions">${getText(currentWeek,currentDay,'rn')}</textarea></div>
+        <div><div class="ref-label">LR: what improved</div><textarea oninput="setText(${currentWeek},${currentDay},'rli',this.value)" placeholder="e.g. Argument structure faster">${getText(currentWeek,currentDay,'rli')}</textarea></div>
+        <div><div class="ref-label">RC: still needs work</div><textarea oninput="setText(${currentWeek},${currentDay},'rcf',this.value)" placeholder="e.g. Science passages">${getText(currentWeek,currentDay,'rcf')}</textarea></div>
+      </div>
+      <div class="form-group"><div class="ref-label">Am I on pace for my score milestone?</div><textarea style="min-height:60px" oninput="setText(${currentWeek},${currentDay},'rpace',this.value)" placeholder="Honest assessment — not what you wish were true">${getText(currentWeek,currentDay,'rpace')}</textarea></div>
+      <button class="btn btn-xp btn-block" id="resetCompleteBtn" ${resetDoneFlag?'disabled':''} onclick="markResetComplete(${currentWeek})">${resetDoneFlag?'Reset Complete ✓':'Mark Reset Complete (+20 XP)'}</button>
+    </div>`;
+  } else {
+    html += `<div class="card" style="margin-bottom:8px">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-header-label">Daily Reflection</div>
+        <span class="card-tag">End of session</span>
+        <span style="color:var(--faint);margin-left:6px;font-size:12px">▸</span>
+      </div>
+      <div class="card-body card-body-collapsed">
+        <div class="review-note">${tm.reviewNote}</div>
+        <div class="reflection-grid">
+          <div><div class="ref-label">What I missed (pattern)</div><textarea oninput="setText(${currentWeek},${currentDay},'rm',this.value)" placeholder="e.g. Attacked premises instead of conclusion link">${getText(currentWeek,currentDay,'rm')}</textarea></div>
+          <div><div class="ref-label">What clicked / improved</div><textarea oninput="setText(${currentWeek},${currentDay},'ri',this.value)" placeholder="e.g. Comparative passages clearer">${getText(currentWeek,currentDay,'ri')}</textarea></div>
+        </div>
+        <div class="form-group"><div class="ref-label">Next session focus</div><textarea style="min-height:56px" oninput="setText(${currentWeek},${currentDay},'rnx',this.value)" placeholder="What will you drill tomorrow?">${getText(currentWeek,currentDay,'rnx')}</textarea></div>
+      </div>
+    </div>`;
+  }
+
+  const dv = document.getElementById('dayView'); if (dv) { dv.innerHTML = html; updateProgress(); updateRewardUI(); }
+}
+
+// ── Collapsible cards ──
+function toggleCard(header) {
+  const body = header.nextElementSibling;
+  if (!body) return;
+  const isCollapsed = body.classList.contains('card-body-collapsed');
+  body.classList.toggle('card-body-collapsed', !isCollapsed);
+  const arrow = header.querySelector('span:last-child');
+  if (arrow) arrow.textContent = isCollapsed ? '▾' : '▸';
+}
+
+// ── Mark weekly reset complete (persisted) ──
+function markResetComplete(w) {
+  if (state[`w${w}_resetDone`]) return;
+  state[`w${w}_resetDone`] = true;
+  saveState();
+  awardXP(20, 'weekly reset completed');
+  const btn = document.getElementById('resetCompleteBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Reset Complete ✓'; }
+}
+
+// ── Keyboard shortcuts (desktop) ──
+document.addEventListener('keydown', e => {
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  if (document.querySelector('.modal-overlay.open')) return;
+  if (e.key === 'ArrowLeft')  { if (currentDay > 0) selectDay(currentDay-1); else changeWeek(-1); }
+  if (e.key === 'ArrowRight') { if (currentDay < 6) selectDay(currentDay+1); else changeWeek(1); }
+  if (e.key === 'ArrowUp' && e.shiftKey)   { changeWeek(-1); e.preventDefault(); }
+  if (e.key === 'ArrowDown' && e.shiftKey) { changeWeek(1); e.preventDefault(); }
+});
+
+// ═══════════════════════════════════════════════════════════
+// Init
+// ═══════════════════════════════════════════════════════════
+loadXP();
+loadState();
+checkDailyReset();
+loadCfg();
+decayStreakIfStale();
+
+if (initStartDate()) {
+  initPos();
+  renderWeek();
+} else {
+  // First-load: show date picker. Default to current week's Monday.
+  // Render a placeholder week 1 view in the background using today's Monday so app isn't blank.
+  WEEK1_START = getWeekStart();
+  initPos();
+  renderWeek();
+  setTimeout(showStartDatePicker, 200);
+}
+updateXpUI();
+updateRewardUI();
+renderRewards();
+
+// ── Service Worker (P1.1) — registers only if hosted (https/http), silent on file://
+// Looks for a sibling sw.js file. If not present, fails silently and the app still works
+// (just without true offline support — falls back to browser cache).
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.protocol === 'http:')) {
+  navigator.serviceWorker.register('sw.js').catch(() => {/* silent — sw.js not present, that's fine */});
+}
+</script>
+</body>
+</html>
